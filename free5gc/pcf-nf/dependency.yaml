@@ -1,0 +1,15 @@
+apiVersion: req.nephio.org/v1alpha1
+kind: Dependency
+metadata:
+  name: upf
+  annotations:
+    config.kubernetes.io/local-config: "true"
+    specializer.nephio.org/owner: workload.nephio.org/v1alpha1.NFDeployment.pcf-example
+    specializer.nephio.org/namespace: example
+spec:
+  packageName: free5gc-nrf
+  injectors:
+  - apiVersion: workload.nephio.org/v1alpha1
+    kind: NFDeployment
+    spec:
+      provider: nrf.free5gc.io
