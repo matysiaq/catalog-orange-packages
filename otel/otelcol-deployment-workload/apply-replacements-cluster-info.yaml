@@ -11,8 +11,7 @@ replacements:
     fieldPath: spec.clusterName
   targets:
   - select:
+      apiVersion: opentelemetry.io/v1beta1
       kind: OpenTelemetryCollector
     fieldPaths:
     - metadata.labels.[cluster-info/cluster-name]
-
-
