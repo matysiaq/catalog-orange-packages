@@ -1,9 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: cnos-cluster-info
-  namespace: cnos-system
-data:
-  cluster-name: "example-name"
-  region: "example-region"
-  site-type: "example-site-type"

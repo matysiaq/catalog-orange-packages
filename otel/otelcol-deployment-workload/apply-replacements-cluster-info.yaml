@@ -11,6 +11,9 @@ replacements:
     fieldPath: spec.clusterName
   targets:
   - select:
-      kind: ConfigMap
+      kind: OpenTelemetryCollector
+      name: otelcol-deployment
     fieldPaths:
-    - data.[cluster-name]
+    - metadata.labels.[cluster-info/cluster-name]
+    options:
+      create: true
