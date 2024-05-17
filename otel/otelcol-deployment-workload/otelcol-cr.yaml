@@ -1,0 +1,143 @@
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: otelcol-deployment
+  namespace: cnos-system
+  labels:
+    cluster-info/cluster-name: example-name
+    cluster-info/region: example-region
+    cluster-info/site-type: example-site-type
+spec:
+  volumeMounts:
+    - mountPath: /es-certs
+      name: es-certs
+    - mountPath: /es-certs/remote
+      name: es-certs-remote
+  volumes:
+    - name: es-certs
+      secret:
+        secretName: cnos-elasticsearch-master-certs
+    - name: es-certs-remote
+      secret:
+        secretName: cnos-elasticsearch-remote-certs
+  config:
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+          http:
+
+      k8s_cluster:
+        auth_type: serviceAccount
+        node_conditions_to_report: [Ready, NotReady, MemoryPressure]
+        allocatable_types_to_report: [cpu, memory, storage]
+        distribution: kubernetes
+        collection_interval: 10s
+
+      k8sobjects:
+        auth_type: serviceAccount
+        objects:
+          - name: certificates
+            mode: pull
+            group: cert-manager.io/v1
+          - name: pods
+            mode: pull
+          - name: events
+            group: events.k8s.io
+            mode: watch
+          - name: configs
+            group: ref.nephio.org/v1alpha1
+            mode: pull
+          - name: nfconfigs
+            group: workload.nephio.org/v1alpha1
+            mode: pull
+          - name: nfdeployments
+            group: workload.nephio.org/v1alpha1
+            mode: pull
+
+    processors:
+      batch:
+        send_batch_size: 10000
+        timeout: 1s
+
+      attributes/add-source/k8s_cluster:
+        actions:
+          - key: otel_data_source
+            value: k8s_cluster
+            action: upsert
+
+      attributes/add-source/k8sobjects:
+        actions:
+          - key: otel_data_source
+            value: k8sobjects
+            action: upsert
+
+      attributes/cluster:
+        actions:
+          - key: cluster_name
+            from_attribute: metadata.labels['cluster-info/cluster-name']
+            action: upsert
+          - key: region
+            value: metadata.labels['cluster-info/region']
+            action: upsert
+          - key: site_type
+            value: metadata.labels['cluster-info/site-type']
+            action: upsert
+
+    exporters:
+      debug:
+
+      prometheusremotewrite/remote:
+        endpoint: "http://10.254.185.27:9009/api/v1/push"
+        tls:
+          insecure: true
+
+      prometheusremotewrite/edge:
+        endpoint: "http://cnos-prometheus-agent-local.cnos-system:8080/api/v1/write"
+        tls:
+          insecure: true
+
+      otlp/jaeger-edge:
+        endpoint: http://cnos-jaeger-collector.cnos-system:4317
+        tls:
+          insecure: true
+
+      otlp/jaeger-remote:
+        endpoint: http://10.254.185.27:4317
+        tls:
+          insecure: true
+
+      otlp/elasticsearch-edge:
+        endpoint: http://cnos-apm-server:8200
+        tls:
+          insecure: true
+
+      otlp/elasticsearch-remote:
+        endpoint: http://10.254.185.27:8200
+        tls:
+          insecure: true
+
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [batch, attributes/cluster]
+          exporters: [debug, otlp/jaeger-edge, otlp/jaeger-remote]
+
+        metrics:
+          receivers: [otlp]
+          processors: [batch, attributes/cluster]
+          exporters: [debug, prometheusremotewrite/remote, prometheusremotewrite/edge]
+        metrics/k8s_cluster:
+          receivers: [k8s_cluster]
+          processors: [batch, attributes/cluster, attributes/add-source/k8s_cluster]
+          exporters: [debug, prometheusremotewrite/remote, prometheusremotewrite/edge]
+
+        logs:
+          receivers: [otlp]
+          processors: [batch, attributes/cluster]
+          exporters: [debug, otlp/elasticsearch-edge, otlp/elasticsearch-remote]
+        logs/k8sobjects:
+          receivers: [k8sobjects]
+          processors: [batch, attributes/cluster, attributes/add-source/k8sobjects]
+          exporters: [debug, otlp/elasticsearch-edge, otlp/elasticsearch-remote]
