@@ -5,8 +5,8 @@ metadata:
   namespace: cnos-system
   labels:
     cluster-info/cluster-name: example-name
-    cluster-info/region: example-region
-    cluster-info/site-type: example-site-type
+    nephio.org/region: missing
+    nephio.org/site-type: missing
 spec:
   env:
     - name: CLUSTER_NAME
@@ -16,11 +16,11 @@ spec:
     - name: REGION
       valueFrom:
         fieldRef:
-          fieldPath: metadata.labels['cluster-info/region']
+          fieldPath: metadata.labels['nephio.org/region']
     - name: SITE_TYPE
       valueFrom:
         fieldRef:
-          fieldPath: metadata.labels['cluster-info/site-type']
+          fieldPath: metadata.labels['nephio.org/site-type']
   volumeMounts:
     - mountPath: /es-certs
       name: es-certs
