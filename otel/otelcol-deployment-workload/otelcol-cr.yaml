@@ -3,24 +3,23 @@ kind: OpenTelemetryCollector
 metadata:
   name: otelcol-deployment
   namespace: cnos-system
-  labels:
-    cluster-info/cluster-name: example-name
-    cluster-info/region: example-region
-    cluster-info/site-type: example-site-type
 spec:
   env:
     - name: CLUSTER_NAME
       valueFrom:
-        fieldRef:
-          fieldPath: metadata.labels['cluster-info/cluster-name']
+        configMapKeyRef:
+          name: cnos-cluster-info
+          key: cluster-name
     - name: REGION
       valueFrom:
-        fieldRef:
-          fieldPath: metadata.labels['cluster-info/region']
+        configMapKeyRef:
+          name: cnos-cluster-info
+          key: region
     - name: SITE_TYPE
       valueFrom:
-        fieldRef:
-          fieldPath: metadata.labels['cluster-info/site-type']
+        configMapKeyRef:
+          name: cnos-cluster-info
+          key: site-type
   volumeMounts:
     - mountPath: /es-certs
       name: es-certs
