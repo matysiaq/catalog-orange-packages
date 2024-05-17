@@ -5,7 +5,7 @@ metadata:
   namespace: cnos-system
   labels:
     cluster-info/cluster-name: nephio
-    cluster-info/region: ""
+    cluster-info/region: poland
     cluster-info/site-type: management
 spec:
   env:
