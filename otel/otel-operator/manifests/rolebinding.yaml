@@ -1,0 +1,17 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/name: opentelemetry-operator
+    app.kubernetes.io/version: "0.99.0"
+  name: otel-operator-opentelemetry-operator-leader-election
+  namespace: cnos-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: otel-operator-opentelemetry-operator-leader-election
+subjects:
+  - kind: ServiceAccount
+    name: opentelemetry-operator
+    namespace: cnos-system

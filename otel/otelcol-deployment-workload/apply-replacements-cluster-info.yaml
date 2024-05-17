@@ -13,35 +13,14 @@ replacements:
   - select:
       kind: OpenTelemetryCollector
     fieldPaths:
-    - spec.config.processors.attributes/cluster.actions
-    options:
-      delimiter: '-'
-      index: 1
-  - select:
-      kind: Interface
-    fieldPaths:
-    - metadata.annotations.[specializer.nephio.org/owner]
-    options:
-      delimiter: '-'
-      index: 1
-  - select:
-      kind: Capacity
-    fieldPaths:
-    - metadata.annotations.[specializer.nephio.org/owner]
-    options:
-      delimiter: '-'
-      index: 1
-  - select:
-      kind: DataNetwork
-    fieldPaths:
-    - metadata.annotations.[specializer.nephio.org/owner]
-    options:
-      delimiter: '-'
-      index: 1
-  - select:
-      kind: Dependency
-    fieldPaths:
-    - metadata.annotations.[specializer.nephio.org/owner]
-    options:
-      delimiter: '-'
-      index: 1
+    - metadata.labels.[cluster-info/cluster-name]
+- source:
+    kind: WorkloadCluster
+    name: workload-cluster
+    fieldPath: spec.clusterName
+  targets:
+    - select:
+        kind: OpenTelemetryCollector
+      fieldPaths:
+        - metadata.labels.[cluster-info/cluster-name]
+

@@ -1,0 +1,32 @@
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  labels:
+    app.kubernetes.io/name: opentelemetry-operator
+    app.kubernetes.io/version: "0.99.0"
+  name: otel-operator-opentelemetry-operator-serving-cert
+  namespace: cnos-system
+spec:
+  dnsNames:
+    - otel-operator-opentelemetry-operator-webhook.cnos-system.svc
+    - otel-operator-opentelemetry-operator-webhook.cnos-system.svc.cluster.local
+  issuerRef:
+    kind: Issuer
+    name: otel-operator-opentelemetry-operator-selfsigned-issuer
+  secretName: otel-operator-opentelemetry-operator-controller-manager-service-cert
+  subject:
+    organizationalUnits:
+      - otel-operator-opentelemetry-operator
+
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  labels:
+    app.kubernetes.io/name: opentelemetry-operator
+    app.kubernetes.io/version: "0.99.0"
+  name: otel-operator-opentelemetry-operator-selfsigned-issuer
+  namespace: cnos-system
+spec:
+  selfSigned: {}

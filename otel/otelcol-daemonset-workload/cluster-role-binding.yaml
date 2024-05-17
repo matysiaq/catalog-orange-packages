@@ -1,0 +1,14 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: otelcol-daemonset-collector
+  labels:
+    app.kubernetes.io/version: "0.96.0"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: otelcol-daemonset-collector
+subjects:
+  - kind: ServiceAccount
+    name: otelcol-daemonset-collector
+    namespace: cnos-system

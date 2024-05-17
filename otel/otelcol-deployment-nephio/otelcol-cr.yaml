@@ -4,9 +4,9 @@ metadata:
   name: otelcol-deployment
   namespace: cnos-system
   labels:
-    cluster-info/cluster-name: example-name
-    cluster-info/region: example-region
-    cluster-info/site-type: example-site-type
+    cluster-info/cluster-name: nephio
+    cluster-info/region: ""
+    cluster-info/site-type: management
 spec:
   env:
     - name: CLUSTER_NAME
@@ -58,14 +58,85 @@ spec:
           - name: events
             group: events.k8s.io
             mode: watch
-          - name: configs
-            group: ref.nephio.org/v1alpha1
+          - name: networks
+            group: config.nephio.org/v1alpha1
+          - name: workloadclusters
+            group: infra.nephio.org/v1alpha1
             mode: pull
-          - name: nfconfigs
+          - name: networks
+            group: config.nephio.org/v1alpha1
+            mode: pull
+          - name: clustercontexts
+            group: infra.nephio.org/v1alpha1
+            mode: pull
+          - name: networkconfigs
+            group: infra.nephio.org/v1alpha1
+            mode: pull
+          - name: networks
+            group: infra.nephio.org/v1alpha1
+            mode: pull
+          - name: repositories
+            group: infra.nephio.org/v1alpha1
+            mode: pull
+          - name: tokens
+            group: infra.nephio.org/v1alpha1
+            mode: pull
+          - name: endpoints
+            group: inv.nephio.org/v1alpha1
+            mode: pull
+          - name: links
+            group: inv.nephio.org/v1alpha1
+            mode: pull
+          - name: nodes
+            group: inv.nephio.org/v1alpha1
+            mode: pull
+          - name: targets
+            group: inv.nephio.org/v1alpha1
+            mode: pull
+          - name: ipclaims
+            group: ipam.resource.nephio.org/v1alpha1
+            mode: pull
+          - name: ipprefixes
+            group: ipam.resource.nephio.org/v1alpha1
+            mode: pull
+          - name: networkinstances
+            group: ipam.resource.nephio.org/v1alpha1
+            mode: pull
+          - name: capacities
+            group: req.nephio.org/v1alpha1
+            mode: pull
+          - name: datanetworknames
+            group: req.nephio.org/v1alpha1
+            mode: pull
+          - name: datanetworks
+            group: req.nephio.org/v1alpha1
+            mode: pull
+          - name: interfaces
+            group: req.nephio.org/v1alpha1
+            mode: pull
+          - name: rawtopologies
+            group: topo.nephio.org/v1alpha1
+            mode: pull
+          - name: vlanclaims
+            group: vlan.resource.nephio.org/v1alpha1
+            mode: pull
+          - name: vlanindices
+            group: vlan.resource.nephio.org/v1alpha1
+            mode: pull
+          - name: vlans
+            group: vlan.resource.nephio.org/v1alpha1
+            mode: pull
+          - name: amfdeployments
             group: workload.nephio.org/v1alpha1
             mode: pull
-          - name: nfdeployments
+          - name: smfdeployments
             group: workload.nephio.org/v1alpha1
+            mode: pull
+          - name: upfdeployments
+            group: workload.nephio.org/v1alpha1
+            mode: pull
+          - name: clusters
+            group: cluster.x-k8s.io
             mode: pull
 
     processors:
@@ -96,7 +167,6 @@ spec:
           - key: site_type
             value: ${env:SITE_TYPE}
             action: upsert
-
 
     exporters:
       debug:
