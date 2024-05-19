@@ -1,7 +1,7 @@
 # otelcol-deployment-workload
 
 ## Description
-sample description
+Sample specialized Open Telemetry Collector of type `deployment` which can be deployed to workload cluster
 
 ## Usage
 

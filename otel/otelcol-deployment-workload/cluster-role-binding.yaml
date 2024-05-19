@@ -1,9 +1,8 @@
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: otelcol-deployment-collector
-  labels:
-    app.kubernetes.io/version: "0.96.0"
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole

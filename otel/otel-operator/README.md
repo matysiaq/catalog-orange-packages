@@ -1,7 +1,7 @@
 # otel-operator
 
 ## Description
-sample description
+Sample Open Telemetry Operator package
 
 ## Usage
 
