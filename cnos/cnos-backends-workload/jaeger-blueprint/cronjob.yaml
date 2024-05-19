@@ -1,0 +1,254 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cnos-jaeger-es-index-cleaner
+  labels:
+    app: cnos-jaeger
+  namespace: cnos-system
+spec:
+  concurrencyPolicy: Forbid
+  schedule: "55 23 * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  suspend: false
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: cnos-jaeger
+        spec:
+          serviceAccountName: cnos-jaeger-es-index-cleaner
+          securityContext:
+            runAsUser: 1000
+          initContainers:
+            - name: wait-for-elasticsearch
+              image: busybox
+              command: [ 'sh', '-c', 'sleep 120 && until nc -z -v -w30 cnos-elasticsearch-master 9200; do echo "Waiting for Elasticsearch"; sleep 10; done' ]
+          containers:
+            - name: cnos-jaeger-es-index-cleaner
+              securityContext:
+                runAsUser: 1000
+              image: jaegertracing/jaeger-es-index-cleaner:1.53.0
+              imagePullPolicy: IfNotPresent
+              args:
+                - "7"
+                - https://cnos-elasticsearch-master.cnos-system:9200
+                - --es.tls.ca=/es-tls/ca.crt
+              env:
+                - name: ES_SERVER_URLS
+                  value: https://cnos-elasticsearch-master.cnos-system:9200
+                - name: ES_USERNAME
+                  value: elastic
+                - name: ES_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: cnos-elasticsearch-master-credentials
+                      key: password
+                - name: ES_TLS_ENABLED
+                  value: "true"
+                - name: ES_TLS_CA
+                  value: /es-tls/ca.crt
+                - name: ES_TAGS_AS_FIELDS_ALL
+                  value: "true"
+              volumeMounts:
+                - name: cnos-elasticsearch-master-certs
+                  mountPath: /es-tls/
+                  readOnly: true
+          restartPolicy: OnFailure
+          volumes:
+            - name: cnos-elasticsearch-master-certs
+              secret:
+                secretName: cnos-elasticsearch-master-certs
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cnos-jaeger-es-lookback
+  labels:
+    app: cnos-jaeger
+  namespace: cnos-system
+spec:
+  concurrencyPolicy: Forbid
+  schedule: "5 0 * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  suspend: false
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: cnos-jaeger
+        spec:
+          serviceAccountName: cnos-jaeger-es-lookback
+          securityContext:
+            runAsUser: 1000
+          restartPolicy: OnFailure
+          initContainers:
+            - name: wait-for-elasticsearch
+              image: busybox
+              command: [ 'sh', '-c', 'sleep 120 && until nc -z -v -w30 cnos-elasticsearch-master 9200; do echo "Waiting for Elasticsearch"; sleep 10; done' ]
+          containers:
+            - name: cnos-jaeger-es-lookback
+              image: jaegertracing/jaeger-es-rollover:1.53.0
+              imagePullPolicy: IfNotPresent
+              args:
+                - lookback
+                - https://cnos-elasticsearch-master.cnos-system:9200
+                - --es.tls.ca=/es-tls/ca.crt
+              env:
+                - name: ES_SERVER_URLS
+                  value: https://cnos-elasticsearch-master.cnos-system:9200
+                - name: ES_USERNAME
+                  value: elastic
+                - name: ES_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: cnos-elasticsearch-master-credentials
+                      key: password
+                - name: ES_TLS_ENABLED
+                  value: "true"
+                - name: ES_TLS_CA
+                  value: /es-tls/ca.crt
+                - name: ES_TAGS_AS_FIELDS_ALL
+                  value: "true"
+                - name: UNIT
+                  value: days
+                - name: UNIT_COUNT
+                  value: "7"
+              resources: {}
+              volumeMounts:
+                - name: cnos-elasticsearch-master-certs
+                  mountPath: /es-tls/
+                  readOnly: true
+          volumes:
+            - name: cnos-elasticsearch-master-certs
+              secret:
+                secretName: cnos-elasticsearch-master-certs
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cnos-jaeger-es-rollover
+  labels:
+    app: cnos-jaeger
+  namespace: cnos-system
+spec:
+  concurrencyPolicy: Forbid
+  schedule: "10 0 * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  suspend: false
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: cnos-jaeger
+        spec:
+          serviceAccountName: cnos-jaeger-es-rollover
+          securityContext:
+            runAsUser: 1000
+          restartPolicy: OnFailure
+          initContainers:
+            - name: wait-for-elasticsearch
+              image: busybox
+              command: [ 'sh', '-c', 'sleep 120 && until nc -z -v -w30 cnos-elasticsearch-master 9200; do echo "Waiting for Elasticsearch"; sleep 10; done' ]
+          containers:
+            - name: cnos-jaeger-es-rollover
+              securityContext: {}
+              image: jaegertracing/jaeger-es-rollover:1.53.0
+              imagePullPolicy: IfNotPresent
+              args:
+                - rollover
+                - https://cnos-elasticsearch-master.cnos-system:9200
+                - --es.tls.ca=/es-tls/ca.crt
+              env:
+                - name: ES_SERVER_URLS
+                  value: https://cnos-elasticsearch-master.cnos-system:9200
+                - name: ES_USERNAME
+                  value: elastic
+                - name: ES_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: cnos-elasticsearch-master-credentials
+                      key: password
+                - name: ES_TLS_ENABLED
+                  value: "true"
+                - name: ES_TLS_CA
+                  value: /es-tls/ca.crt
+                - name: ES_TAGS_AS_FIELDS_ALL
+                  value: "true"
+                - name: CONDITIONS
+                  value: '{"max_age": "1d"}'
+              volumeMounts:
+                - name: cnos-elasticsearch-master-certs
+                  mountPath: /es-tls/
+                  readOnly: true
+          volumes:
+            - name: cnos-elasticsearch-master-certs
+              secret:
+                secretName: cnos-elasticsearch-master-certs
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cnos-jaeger-spark
+  labels:
+    app: cnos-jaeger
+  namespace: cnos-system
+spec:
+  schedule: "49 23 * * *"
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 5
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: cnos-jaeger
+        spec:
+          serviceAccountName: cnos-jaeger-spark
+          initContainers:
+            - name: wait-for-elasticsearch
+              image: busybox
+              command: [ 'sh', '-c', 'sleep 120 && until nc -z -v -w30 cnos-elasticsearch-master 9200; do echo "Waiting for Elasticsearch"; sleep 10; done' ]
+          containers:
+            - name: cnos-jaeger-spark
+              image: jaegertracing/spark-dependencies:latest
+              imagePullPolicy: IfNotPresent
+              args:
+                - --java.opts=-Djavax.net.ssl.trustStore=/tls/trust.store -Djavax.net.ssl.trustStorePassword=t6ygfr5
+              env:
+                - name: STORAGE
+                  value: elasticsearch
+                - name: ES_SERVER_URLS
+                  value: https://elasticsearch-master.cnos-system:9200
+                - name: ES_USERNAME
+                  value: elastic
+                - name: ES_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: elasticsearch-master-credentials
+                      key: password
+                - name: ES_TLS_ENABLED
+                  value: "true"
+                - name: ES_TLS_CA
+                  value: /es-tls/ca.crt
+                - name: ES_TAGS_AS_FIELDS_ALL
+                  value: "true"
+                - name: ES_NODES
+                  value: https://elasticsearch-master.cnos-system:9200
+                - name: ES_NODES_WAN_ONLY
+                  value: "false"
+              volumeMounts:
+                - name: cnos-elasticsearch-master-certs
+                  mountPath: /es-tls/
+                  readOnly: true
+          restartPolicy: OnFailure
+          volumes:
+            - name: cnos-elasticsearch-master-certs
+              secret:
+                secretName: cnos-elasticsearch-master-certs

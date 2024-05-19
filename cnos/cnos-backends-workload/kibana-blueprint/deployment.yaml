@@ -1,0 +1,142 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cnos-kibana
+  labels:
+    app: cnos-kibana
+  namespace: cnos-system
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: cnos-kibana
+  template:
+    metadata:
+      labels:
+        app: cnos-kibana
+    spec:
+      serviceAccountName: cnos-kibana-sa
+      automountServiceAccountToken: true
+      securityContext:
+        fsGroup: 1000
+      volumes:
+        - name: cnos-kibana-tokens
+          emptyDir: {}
+        - name: cnos-elasticsearch-certs
+          secret:
+            secretName: cnos-elasticsearch-master-certs
+        - name: cnos-kibana-helm-scripts
+          configMap:
+            name: cnos-kibana-helm-scripts
+            defaultMode: 0755
+        - name: cnos-kibana-config
+          configMap:
+            name: cnos-kibana-config
+      initContainers:
+        - name: wait-for-elasticsearch
+          image: busybox
+          command: ['sh', '-c', 'sleep 120 && until nc -z -v -w30 cnos-elasticsearch-master 9200; do echo "Waiting for Elasticsearch"; sleep 10; done' ]
+        - name: create-cnos-kibana-token
+          image: "docker.elastic.co/kibana/kibana:8.13.0"
+          imagePullPolicy: "IfNotPresent"
+          command: ["/usr/share/kibana/node/bin/node"]
+          args:
+            - /usr/share/kibana/helm-scripts/manage-es-token.js
+            - create
+          env:
+            - name: "ELASTICSEARCH_USERNAME"
+              valueFrom:
+                secretKeyRef:
+                  name: cnos-elasticsearch-master-credentials
+                  key: username
+            - name: "ELASTICSEARCH_PASSWORD"
+              valueFrom:
+                secretKeyRef:
+                  name: cnos-elasticsearch-master-credentials
+                  key: password
+            - name: ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES
+              value: "/usr/share/kibana/config/certs/ca.crt"
+          volumeMounts:
+            - name: cnos-elasticsearch-certs
+              mountPath: /usr/share/kibana/config/certs
+              readOnly: true
+            - name: cnos-kibana-helm-scripts
+              mountPath: /usr/share/kibana/helm-scripts
+      containers:
+        - name: cnos-kibana
+          securityContext:
+            capabilities:
+              drop:
+                - ALL
+            runAsNonRoot: true
+            runAsUser: 1000
+          image: "docker.elastic.co/kibana/kibana:8.13.0"
+          imagePullPolicy: "IfNotPresent"
+          env:
+            - name: ELASTICSEARCH_HOSTS
+              value: "https://cnos-elasticsearch-master:9200"
+            - name: ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES
+              value: "/usr/share/kibana/config/certs/ca.crt"
+            - name: SERVER_HOST
+              value: "0.0.0.0"
+            - name: ELASTICSEARCH_SERVICEACCOUNTTOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: cnos-kibana-es-token
+                  key: token
+                  optional: false
+            - name: NODE_OPTIONS
+              value: --max-old-space-size=1800
+          readinessProbe:
+            failureThreshold: 3
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 3
+            timeoutSeconds: 5
+            exec:
+              command:
+                - bash
+                - -c
+                - |
+                  #!/usr/bin/env bash -e
+
+                  export NSS_SDB_USE_CACHE=no
+
+                  http () {
+                      local path="${1}"
+                      set -- -XGET -s --fail -L
+
+                      if [ -n "${ELASTICSEARCH_USERNAME}" ] && [ -n "${ELASTICSEARCH_PASSWORD}" ]; then
+                        set -- "$@" -u "${ELASTICSEARCH_USERNAME}:${ELASTICSEARCH_PASSWORD}"
+                      fi
+
+                      STATUS=$(curl --output /dev/null --write-out "%{http_code}" -k "$@" "http://localhost:5601${path}")
+                      if [[ "${STATUS}" -eq 200 ]]; then
+                        exit 0
+                      fi
+
+                      echo "Error: Got HTTP code ${STATUS} but expected a 200"
+                      exit 1
+                  }
+
+                  http "/app/kibana"
+          ports:
+            - containerPort: 5601
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 2Gi
+            requests:
+              cpu: 1000m
+              memory: 2Gi
+          volumeMounts:
+            - name: cnos-elasticsearch-certs
+              mountPath: /usr/share/kibana/config/certs
+              readOnly: true
+            - name: cnos-kibana-tokens
+              mountPath: /usr/share/kibana/config/tokens
+              readOnly: true
+            - name: cnos-kibana-config
+              mountPath: /usr/share/kibana/config

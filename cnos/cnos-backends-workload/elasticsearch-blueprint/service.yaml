@@ -1,0 +1,39 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: cnos-elasticsearch-master
+  labels:
+    app: "cnos-elasticsearch-master"
+  namespace: cnos-system
+spec:
+  type: ClusterIP
+  selector:
+    app: "cnos-elasticsearch-master"
+  publishNotReadyAddresses: false
+  ports:
+    - name: http
+      protocol: TCP
+      port: 9200
+    - name: transport
+      protocol: TCP
+      port: 9300
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: cnos-elasticsearch-master-headless
+  labels:
+    app: "cnos-elasticsearch-master"
+  annotations:
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+  namespace: cnos-system
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    app: "cnos-elasticsearch-master"
+  ports:
+    - name: http
+      port: 9200
+    - name: transport
+      port: 9300

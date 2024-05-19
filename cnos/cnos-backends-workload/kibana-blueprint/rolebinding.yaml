@@ -1,0 +1,15 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cnos-kibana-rb
+  labels:
+    app: cnos-kibana
+  namespace: cnos-system
+subjects:
+  - kind: ServiceAccount
+    name: cnos-kibana-sa
+    namespace: cnos-system
+roleRef:
+  kind: Role
+  name: cnos-kibana-role
+  apiGroup: rbac.authorization.k8s.io
