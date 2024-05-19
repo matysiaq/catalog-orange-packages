@@ -12,9 +12,9 @@ if [[ $VERSION = "" ]]; then
 fi
 
 
-declare -a packages=("otelcol-daemonset-nephio"  "otelcol-daemonset-workload" "otelcol-deployment-nephio" "otelcol-deployment-workload"  "otel-operator")
+declare -a packages=("cnos-backends-workload" "otelcol-daemonset-nephio"  "otelcol-daemonset-workload" "otelcol-deployment-nephio" "otelcol-deployment-workload"  "otel-operator")
 
 for package in "${packages[@]}"; do
-    git push -d origin otel/$package/$VERSION
+    git push -d origin cnos/$package/$VERSION
 done
 
