@@ -1,4 +1,3 @@
----
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
@@ -14,7 +13,6 @@ subjects:
   - kind: ServiceAccount
     name: opentelemetry-operator
     namespace: cnos-system
-
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
