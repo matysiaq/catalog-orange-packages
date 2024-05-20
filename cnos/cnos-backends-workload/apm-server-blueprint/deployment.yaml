@@ -33,7 +33,7 @@ spec:
       initContainers:
         - name: wait-for-elasticsearch
           image: busybox
-          command: ['sh', '-c', 'sleep 120 && until nc -z -v -w30 cnos-elasticsearch-master 9200; do echo "Waiting for Elasticsearch"; sleep 10; done' ]
+          command: ['sh', '-c', 'until nc -z -v -w30 cnos-elasticsearch-master 9200; do echo "Waiting for Elasticsearch"; sleep 10; done' ]
       containers:
         - name: cnos-apm-server
           image: "docker.elastic.co/apm/apm-server:8.13.0"

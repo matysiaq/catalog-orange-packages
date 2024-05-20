@@ -37,7 +37,7 @@ spec:
       initContainers:
         - name: wait-for-elasticsearch
           image: busybox
-          command: ['sh', '-c', 'sleep 120 && until nc -z -v -w30 cnos-elasticsearch-master 9200; do echo "Waiting for Elasticsearch"; sleep 10; done' ]
+          command: ['sh', '-c', 'until nc -z -v -w30 cnos-elasticsearch-master 9200; do echo "Waiting for Elasticsearch"; sleep 10; done' ]
         - name: create-cnos-kibana-token
           image: "docker.elastic.co/kibana/kibana:8.13.0"
           imagePullPolicy: "IfNotPresent"
