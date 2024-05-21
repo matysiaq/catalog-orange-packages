@@ -1045,3 +1045,14 @@ spec:
       storage: true
       subresources:
         status: {}
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        service:
+          name: otel-operator-opentelemetry-operator-webhook
+          namespace: cnos-system
+          path: /convert
+      conversionReviewVersions:
+        - v1alpha1
+        - v1beta1
