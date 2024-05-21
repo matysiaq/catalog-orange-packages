@@ -9,5 +9,7 @@ info:
   description: sample kpt package to deploy otel deployment collector to management cluster
 pipeline:
   mutators:
+    - image: gcr.io/kpt-fn/apply-replacements:v0.1.1
+      configPath: apply-replacements.yaml
     - image: gcr.io/kpt-fn/set-namespace:v0.4.1
       configPath: cm-namespace.yaml

@@ -8,20 +8,35 @@ metadata:
     cluster-info/cluster-name: nephio
     cluster-info/region: poland
     cluster-info/site-type: management
+    backends.cnos/remote-metrics: example
+    backends.cnos/remote-logs: example
+    backends.cnos/remote-traces: example
 spec:
   env:
     - name: CLUSTER_NAME
       valueFrom:
         fieldRef:
-          fieldPath: metadata.labels['cluster-info/cluster-name']
+          fieldPath: metadata.labels['info.cnos/cluster-name']
     - name: REGION
       valueFrom:
         fieldRef:
-          fieldPath: metadata.labels['cluster-info/region']
+          fieldPath: metadata.labels['nephio.org/region']
     - name: SITE_TYPE
       valueFrom:
         fieldRef:
-          fieldPath: metadata.labels['cluster-info/site-type']
+          fieldPath: metadata.labels['nephio.org/site-type']
+    - name: REMOTE_BACKEND_METRICS
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.labels['backends.cnos/remote-metrics']
+    - name: REMOTE_BACKEND_LOGS
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.labels['backends.cnos/remote-logs']
+    - name: REMOTE_BACKEND_TRACES
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.labels['backends.cnos/remote-traces']
   volumeMounts:
     - mountPath: /es-certs
       name: es-certs
@@ -173,7 +188,7 @@ spec:
       debug:
 
       prometheusremotewrite/remote:
-        endpoint: "http://10.254.185.27:9009/api/v1/push"
+        endpoint: ${env:REMOTE_BACKEND_METRICS}
         tls:
           insecure: true
 
@@ -188,7 +203,7 @@ spec:
           insecure: true
 
       otlp/jaeger-remote:
-        endpoint: http://10.254.185.27:4317
+        endpoint: ${env:REMOTE_BACKEND_TRACES}
         tls:
           insecure: true
 
@@ -198,7 +213,7 @@ spec:
           insecure: true
 
       otlp/elasticsearch-remote:
-        endpoint: http://10.254.185.27:8200
+        endpoint: ${env:REMOTE_BACKEND_LOGS}
         tls:
           insecure: true
 
