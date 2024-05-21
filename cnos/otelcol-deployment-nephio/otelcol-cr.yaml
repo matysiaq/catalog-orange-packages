@@ -5,7 +5,7 @@ metadata:
   name: otelcol-deployment
   namespace: cnos-system
   labels:
-    cluster-info/cluster-name: nephio
+    info.cnos/cluster-name: nephio
   annotations:
     backends.cnos/remote-metrics: example
     backends.cnos/remote-logs: example
