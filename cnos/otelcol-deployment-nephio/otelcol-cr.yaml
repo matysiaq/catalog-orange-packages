@@ -6,8 +6,6 @@ metadata:
   namespace: cnos-system
   labels:
     cluster-info/cluster-name: nephio
-    cluster-info/region: poland
-    cluster-info/site-type: management
   annotations:
     backends.cnos/remote-metrics: example
     backends.cnos/remote-logs: example
