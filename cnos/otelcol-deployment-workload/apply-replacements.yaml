@@ -27,7 +27,7 @@ replacements:
         kind: OpenTelemetryCollector
         name: otelcol-deployment
       fieldPaths:
-        - metadata.labels.[backends.cnos/remote-metrics]
+        - metadata.annotations.[backends.cnos/remote-metrics]
       options:
         create: true
 - source:
@@ -39,7 +39,7 @@ replacements:
         kind: OpenTelemetryCollector
         name: otelcol-deployment
       fieldPaths:
-        - metadata.labels.[backends.cnos/remote-logs]
+        - metadata.annotations.[backends.cnos/remote-logs]
       options:
         create: true
 - source:
@@ -51,6 +51,6 @@ replacements:
         kind: OpenTelemetryCollector
         name: otelcol-deployment
       fieldPaths:
-        - metadata.labels.[backends.cnos/remote-traces]
+        - metadata.annotations.[backends.cnos/remote-traces]
       options:
         create: true

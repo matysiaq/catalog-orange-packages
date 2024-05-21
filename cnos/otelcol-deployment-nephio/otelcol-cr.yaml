@@ -8,6 +8,7 @@ metadata:
     cluster-info/cluster-name: nephio
     cluster-info/region: poland
     cluster-info/site-type: management
+  annotations:
     backends.cnos/remote-metrics: example
     backends.cnos/remote-logs: example
     backends.cnos/remote-traces: example
@@ -28,15 +29,15 @@ spec:
     - name: REMOTE_BACKEND_METRICS
       valueFrom:
         fieldRef:
-          fieldPath: metadata.labels['backends.cnos/remote-metrics']
+          fieldPath: metadata.annotations['backends.cnos/remote-metrics']
     - name: REMOTE_BACKEND_LOGS
       valueFrom:
         fieldRef:
-          fieldPath: metadata.labels['backends.cnos/remote-logs']
+          fieldPath: metadata.annotations['backends.cnos/remote-logs']
     - name: REMOTE_BACKEND_TRACES
       valueFrom:
         fieldRef:
-          fieldPath: metadata.labels['backends.cnos/remote-traces']
+          fieldPath: metadata.annotations['backends.cnos/remote-traces']
   volumeMounts:
     - mountPath: /es-certs
       name: es-certs
