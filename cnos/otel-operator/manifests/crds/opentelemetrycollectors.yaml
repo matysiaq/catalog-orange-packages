@@ -6,6 +6,7 @@ metadata:
   labels:
     app.kubernetes.io/name: opentelemetry-operator
   name: opentelemetrycollectors.opentelemetry.io
+  namespace: cnos-system
 spec:
   conversion:
     strategy: Webhook
