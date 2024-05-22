@@ -48,6 +48,8 @@ rules:
   - apps
   resources:
   - deployments
+  - statefulsets
+  - daemonsets
   verbs:
   - create
   - delete
@@ -60,6 +62,8 @@ rules:
   - apps
   resources:
   - deployments/status
+  - statefulsets/status
+  - daemonsets/status
   verbs:
   - get
 - apiGroups:
