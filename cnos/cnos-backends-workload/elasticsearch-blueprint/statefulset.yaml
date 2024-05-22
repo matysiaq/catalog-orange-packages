@@ -1,10 +1,11 @@
+---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: cnos-elasticsearch-master
+  namespace: cnos-system
   labels:
     app: "cnos-elasticsearch-master"
-  namespace: cnos-system
 spec:
   serviceName: cnos-elasticsearch-master-headless
   selector:
@@ -70,35 +71,35 @@ spec:
                 - -c
                 - |
                   set -e
-
+                  
                   # Exit if ELASTIC_PASSWORD in unset
                   if [ -z "${ELASTIC_PASSWORD}" ]; then
                     echo "ELASTIC_PASSWORD variable is missing, exiting"
                     exit 1
                   fi
-
+                  
                   # If the node is starting up wait for the cluster to be ready (request params: "wait_for_status=green&timeout=1s" )
                   # Once it has started only check that the node itself is responding
                   START_FILE=/tmp/.es_start_file
-
+                  
                   # Disable nss cache to avoid filling dentry cache when calling curl
                   # This is required with Elasticsearch Docker using nss < 3.52
                   export NSS_SDB_USE_CACHE=no
-
+                  
                   http () {
                     local path="${1}"
                     local args="${2}"
                     set -- -XGET -s
-
+                  
                     if [ "$args" != "" ]; then
                       set -- "$@" $args
                     fi
-
+                  
                     set -- "$@" -u "elastic:${ELASTIC_PASSWORD}"
-
+                  
                     curl --output /dev/null -k "$@" "https://127.0.0.1:9200${path}"
                   }
-
+                  
                   if [ -f "${START_FILE}" ]; then
                     echo 'Elasticsearch is already running, lets check the node is healthy'
                     HTTP_CODE=$(http "/" "-w %{http_code}")
@@ -116,7 +117,7 @@ spec:
                       echo "curl --output /dev/null -k -XGET -s -w '%{http_code}' \${BASIC_AUTH} https://127.0.0.1:9200/ failed with HTTP code ${HTTP_CODE}"
                       exit 1
                     fi
-
+                  
                   else
                     echo 'Waiting for elasticsearch cluster to become ready (request params: "wait_for_status=green&timeout=1s" )'
                     if http "/_cluster/health?wait_for_status=green&timeout=1s" "--fail" ; then
@@ -139,11 +140,11 @@ spec:
               containerPort: 9300
           resources:
             limits:
-              cpu: 700m
-              memory: 1Gi
+              cpu: 1000m
+              memory: 2Gi
             requests:
-              cpu: 700m
-              memory: 1Gi
+              cpu: 1000m
+              memory: 2Gi
           env:
             - name: node.name
               valueFrom:
