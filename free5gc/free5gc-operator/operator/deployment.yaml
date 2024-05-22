@@ -36,7 +36,7 @@ spec:
             cpu: 5m
             memory: 64Mi
       - name: operator
-        image: docker.io/pmatysiaq/free5gc-operator:v0.1.2
+        image: docker.io/pmatysiaq/free5gc-operator:v0.2.0
         command:
         - /free5gc-operator
         args:
