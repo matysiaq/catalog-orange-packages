@@ -190,14 +190,15 @@ spec:
             - name: cnos-elasticsearch-master-certs
               secret:
                 secretName: cnos-elasticsearch-master-certs
+
 ---
 apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: cnos-jaeger-spark
+  namespace: cnos-system
   labels:
     app: cnos-jaeger
-  namespace: cnos-system
 spec:
   schedule: "49 23 * * *"
   successfulJobsHistoryLimit: 5
@@ -214,10 +215,19 @@ spec:
           initContainers:
             - name: wait-for-elasticsearch
               image: busybox
-              command: [ 'sh', '-c', 'until nc -z -v -w30 cnos-elasticsearch-master 9200; do echo "Waiting for Elasticsearch"; sleep 10; done' ]
+              command: ['sh', '-c', 'until nc -z -v -w30 cnos-elasticsearch-master 9200; do echo "Waiting for Elasticsearch"; sleep 10; done']
+            - name: create-trustq-store
+              image: lucidworks/keytool-utils:5.12.0
+              command: ['sh', '-c', 'echo "yes" | keytool -import -trustcacerts -keystore /tls/truststore.jks -storepass t6ygfr5 -alias es-root -file /es-tls/ca.crt']
+              volumeMounts:
+                - name: shared-data
+                  mountPath: /tls
+                - name: cnos-elasticsearch-master-certs
+                  mountPath: /es-tls
+                  readOnly: true
           containers:
             - name: cnos-jaeger-spark
-              image: jaegertracing/spark-dependencies:latest
+              image: pmatysiaq/spark-dependencies-es8:8.13.0
               imagePullPolicy: IfNotPresent
               args:
                 - --java.opts=-Djavax.net.ssl.trustStore=/tls/trust.store -Djavax.net.ssl.trustStorePassword=t6ygfr5
@@ -237,18 +247,26 @@ spec:
                   value: "true"
                 - name: ES_TLS_CA
                   value: /es-tls/ca.crt
+                - name: ES_TLS_CERT
+                  value: /es-tls/tls.crt
+                - name: ES_TLS_KEY
+                  value: /es-tls/tls.key
                 - name: ES_TAGS_AS_FIELDS_ALL
                   value: "true"
                 - name: ES_NODES
                   value: https://elasticsearch-master.cnos-system:9200
                 - name: ES_NODES_WAN_ONLY
-                  value: "false"
+                  value: "true"
               volumeMounts:
+                - name: shared-data
+                  mountPath: /tls
                 - name: cnos-elasticsearch-master-certs
-                  mountPath: /es-tls/
+                  mountPath: /es-tls
                   readOnly: true
           restartPolicy: OnFailure
           volumes:
             - name: cnos-elasticsearch-master-certs
               secret:
                 secretName: cnos-elasticsearch-master-certs
+            - name: shared-data
+              emptyDir: {}
