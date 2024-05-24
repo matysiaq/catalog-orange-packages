@@ -229,11 +229,11 @@ spec:
             - name: cnos-jaeger-spark
               image: pmatysiaq/spark-dependencies-es8:8.13.0
               imagePullPolicy: IfNotPresent
-              args:
-                - --java.opts=-Djavax.net.ssl.trustStore=/tls/trust.store -Djavax.net.ssl.trustStorePassword=t6ygfr5
               env:
                 - name: STORAGE
                   value: elasticsearch
+                - name: JAVA_OPTS
+                  value: -Djavax.net.ssl.trustStore=/tls/truststore.jks -Djavax.net.ssl.trustStorePassword=t6ygfr5
                 - name: ES_SERVER_URLS
                   value: https://elasticsearch-master.cnos-system:9200
                 - name: ES_USERNAME
