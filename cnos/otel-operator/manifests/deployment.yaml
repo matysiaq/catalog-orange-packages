@@ -28,7 +28,7 @@ spec:
             - --health-probe-addr=:8081
             - --webhook-port=9443
             - --collector-image=otel/opentelemetry-collector-contrib:0.99.0
-            - '"enable-go-instrumentation"'
+            - --enable-go-instrumentation=true
           command:
             - /manager
           env:
