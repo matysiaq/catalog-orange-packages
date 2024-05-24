@@ -1,15 +1,15 @@
 apiVersion: req.nephio.org/v1alpha1
 kind: Dependency
 metadata:
-  name: nrf
+  name: mongodb
   annotations:
     config.kubernetes.io/local-config: "true"
-    specializer.nephio.org/owner: workload.nephio.org/v1alpha1.NFDeployment.webui-example
+    specializer.nephio.org/owner: workload.nephio.org/v1alpha1.NFDeployment.nrf-example
     specializer.nephio.org/namespace: example
 spec:
-  packageName: free5gc-nrf
+  packageName: free5gc-mongodb
   injectors:
-  - apiVersion: workload.nephio.org/v1alpha1
-    kind: NFDeployment
-    spec:
-      provider: nrf.free5gc.io
+    - apiVersion: workload.nephio.org/v1alpha1
+      kind: NFDeployment
+      spec:
+        provider: mongodb.free5gc.io
