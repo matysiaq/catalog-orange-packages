@@ -24,7 +24,6 @@ spec:
         resources:
           requests:
             storage: 20Gi
-        storageClassName: standard
   template:
     metadata:
       name: "cnos-elasticsearch-master"
