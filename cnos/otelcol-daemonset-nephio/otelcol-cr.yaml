@@ -52,7 +52,14 @@ spec:
           grpc:
           http:
 
-      kubeletstats:
+      prometheus:
+        config:
+          scrape_configs:
+            - job_name: 'kube-state-metrics'
+              static-configs:
+                - targets: ['kube-state-metrics.kube-system.svc.cluster.local:8080']
+
+        kubeletstats:
         auth_type: serviceAccount
         collection_interval: 20s
         endpoint: "https://${env:NODE_IP}:10250"
@@ -217,6 +224,12 @@ spec:
             value: hostmetrics
             action: upsert
 
+      attributes/add-source/ksm:
+        actions:
+          - key: otel_data_source
+            value: ksm
+            action: upsert
+
       attributes/add-source/filelog:
         actions:
           - key: otel_data_source
@@ -289,6 +302,10 @@ spec:
         metrics/hostmetrics:
           receivers: [hostmetrics]
           processors: [batch, attributes/add-source/hostmetrics, k8sattributes]
+          exporters: [otlp]
+        metrics/ksm:
+          receivers: [prometheus]
+          processors: [batch, attributes/add-source/ksm, k8sattributes]
           exporters: [otlp]
 
         logs:
