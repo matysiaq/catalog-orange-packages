@@ -178,7 +178,7 @@ spec:
           exporters: [debug, prometheusremotewrite/remote, prometheusremotewrite/edge]
         metrics/ksm:
           receivers: [prometheus]
-          processors: [batch, attributes/add-source/ksm]
+          processors: [batch, attributes/cluster, attributes/add-source/ksm]
           exporters: [debug, prometheusremotewrite/remote, prometheusremotewrite/edge]
 
         logs:
