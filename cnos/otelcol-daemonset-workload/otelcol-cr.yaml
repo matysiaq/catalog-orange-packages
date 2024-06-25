@@ -56,7 +56,7 @@ spec:
         config:
           scrape_configs:
             - job_name: 'kube-state-metrics'
-              static-configs:
+              static_configs:
                 - targets: ['kube-state-metrics.kube-system.svc.cluster.local:8080']
 
         kubeletstats:
