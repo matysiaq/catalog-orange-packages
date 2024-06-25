@@ -57,7 +57,7 @@ spec:
           scrape_configs:
             - job_name: 'kube-state-metrics'
               static_configs:
-                - targets: ['kube-state-metrics.kube-system.svc.cluster.local:8080']
+                - targets: ['kube-state-metrics-shard.kube-system.svc.cluster.local:8080']
 
       kubeletstats:
         auth_type: serviceAccount

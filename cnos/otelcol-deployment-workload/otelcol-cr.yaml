@@ -57,6 +57,13 @@ spec:
           grpc:
           http:
 
+      prometheus:
+        config:
+          scrape_configs:
+            - job_name: 'kube-state-metrics'
+              static_configs:
+                - targets: [ 'kube-state-metrics.kube-system.svc.cluster.local:8080' ]
+
       k8s_cluster:
         auth_type: serviceAccount
         node_conditions_to_report: [Ready, NotReady, MemoryPressure]
@@ -94,6 +101,12 @@ spec:
         actions:
           - key: otel_data_source
             value: k8s_cluster
+            action: upsert
+
+      attributes/add-source/ksm:
+        actions:
+          - key: otel_data_source
+            value: ksm
             action: upsert
 
       attributes/add-source/k8sobjects:
@@ -163,6 +176,10 @@ spec:
           receivers: [k8s_cluster]
           processors: [batch, attributes/cluster, attributes/add-source/k8s_cluster]
           exporters: [debug, prometheusremotewrite/remote, prometheusremotewrite/edge]
+        metrics/ksm:
+          receivers: [prometheus]
+          processors: [batch, attributes/add-source/ksm, k8sattributes]
+          exporters: [otlp]
 
         logs:
           receivers: [otlp]
