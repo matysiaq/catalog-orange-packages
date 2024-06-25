@@ -59,7 +59,7 @@ spec:
               static_configs:
                 - targets: ['kube-state-metrics.kube-system.svc.cluster.local:8080']
 
-        kubeletstats:
+      kubeletstats:
         auth_type: serviceAccount
         collection_interval: 20s
         endpoint: "https://${env:NODE_IP}:10250"
