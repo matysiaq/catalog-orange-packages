@@ -117,7 +117,7 @@ spec:
 
       attributes/cluster:
         actions:
-          - key: cluster_name
+          - key: cluster
             value: ${env:CLUSTER_NAME}
             action: upsert
           - key: region
@@ -126,7 +126,6 @@ spec:
           - key: site_type
             value: ${env:SITE_TYPE}
             action: upsert
-
 
     exporters:
       debug:
@@ -141,22 +140,22 @@ spec:
         tls:
           insecure: true
 
-      otlp/jaeger-edge:
+      otlp/jaeger/edge:
         endpoint: http://cnos-jaeger-collector.cnos-system:4317
         tls:
           insecure: true
 
-      otlp/jaeger-remote:
+      otlp/jaeger/remote:
         endpoint: ${env:REMOTE_BACKEND_TRACES}
         tls:
           insecure: true
 
-      otlp/elasticsearch-edge:
+      otlp/elasticsearch/edge:
         endpoint: http://cnos-apm-server:8200
         tls:
           insecure: true
 
-      otlp/elasticsearch-remote:
+      otlp/elasticsearch/remote:
         endpoint: ${env:REMOTE_BACKEND_LOGS}
         tls:
           insecure: true
@@ -166,7 +165,7 @@ spec:
         traces:
           receivers: [otlp]
           processors: [batch, attributes/cluster]
-          exporters: [debug, otlp/jaeger-edge, otlp/jaeger-remote]
+          exporters: [debug, otlp/jaeger/edge, otlp/jaeger/remote]
 
         metrics:
           receivers: [otlp]
@@ -184,8 +183,8 @@ spec:
         logs:
           receivers: [otlp]
           processors: [batch, attributes/cluster]
-          exporters: [debug, otlp/elasticsearch-edge, otlp/elasticsearch-remote]
+          exporters: [debug, otlp/elasticsearch/edge, otlp/elasticsearch/remote]
         logs/k8sobjects:
           receivers: [k8sobjects]
           processors: [batch, attributes/cluster, attributes/add-source/k8sobjects]
-          exporters: [debug, otlp/elasticsearch-edge, otlp/elasticsearch-remote]
+          exporters: [debug, otlp/elasticsearch/edge, otlp/elasticsearch/remote]
