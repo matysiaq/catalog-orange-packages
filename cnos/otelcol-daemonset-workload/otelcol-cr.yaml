@@ -243,38 +243,27 @@ spec:
             action: upsert
 
       k8sattributes:
-        extract:
-          annotations:
-          - from: pod
-            key_regex: (.*)
-            tag_name: $$1
-          labels:
-          - from: pod
-            key_regex: (.*)
-            tag_name: $$1
-          metadata:
-          - k8s.namespace.name
-          - k8s.deployment.name
-          - k8s.statefulset.name
-          - k8s.daemonset.name
-          - k8s.cronjob.name
-          - k8s.job.name
-          - k8s.node.name
-          - k8s.pod.name
-          - k8s.pod.uid
-          - k8s.pod.start_time
-        filter:
-          node_from_env_var: K8S_NODE_NAME
+        auth_type: "serviceAccount"
         passthrough: false
+        filter:
+          node_from_env_var: KUBE_NODE_NAME
+        extract:
+          metadata:
+            - k8s.pod.name
+            - k8s.pod.uid
+            - k8s.deployment.name
+            - k8s.namespace.name
+            - k8s.node.name
+            - k8s.pod.start_time
         pod_association:
-        - sources:
-          - from: resource_attribute
-            name: k8s.pod.ip
-        - sources:
-          - from: resource_attribute
-            name: k8s.pod.uid
-        - sources:
-          - from: connection
+          - sources:
+              - from: resource_attribute
+                name: k8s.pod.ip
+          - sources:
+              - from: resource_attribute
+                name: k8s.pod.uid
+          - sources:
+              - from: connection
 
     exporters:
       debug:
@@ -288,35 +277,35 @@ spec:
       pipelines:
         traces:
           receivers: [otlp]
-          processors: [batch]
+          processors: [k8sattributes, batch]
           exporters: [otlp]
 
         metrics:
           receivers: [otlp]
-          processors: [batch, k8sattributes]
+          processors: [k8sattributes, batch]
           exporters: [otlp]
         metrics/kubeletstats:
           receivers: [kubeletstats]
-          processors: [batch, attributes/add-source/kubeletstats, k8sattributes]
+          processors: [k8sattributes, batch, attributes/add-source/kubeletstats]
           exporters: [otlp]
         metrics/hostmetrics:
           receivers: [hostmetrics]
-          processors: [batch, attributes/add-source/hostmetrics, k8sattributes]
+          processors: [k8sattributes, batch, attributes/add-source/hostmetrics]
           exporters: [otlp]
         metrics/ksm:
           receivers: [prometheus]
-          processors: [batch, attributes/add-source/ksm, k8sattributes]
+          processors: [k8sattributes, batch, attributes/add-source/ksm]
           exporters: [otlp]
 
         logs:
           receivers: [otlp]
-          processors: [batch]
+          processors: [k8sattributes, batch]
           exporters: [otlp]
         logs/filelog:
           receivers: [filelog]
-          processors: [batch, attributes/add-source/filelog]
+          processors: [k8sattributes, batch, attributes/add-source/filelog]
           exporters: [otlp]
         logs/syslog:
           receivers: [syslog/tcp, syslog/udp]
-          processors: [batch, attributes/add-source/syslog]
+          processors: [k8sattributes, batch, attributes/add-source/syslog]
           exporters: [otlp]
