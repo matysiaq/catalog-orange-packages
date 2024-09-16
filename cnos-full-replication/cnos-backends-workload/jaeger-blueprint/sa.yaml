@@ -1,0 +1,53 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cnos-jaeger-collector
+  labels:
+    app: cnos-jaeger
+  namespace: cnos-system
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cnos-jaeger-es-index-cleaner
+  labels:
+    app: cnos-jaeger
+  namespace: cnos-system
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cnos-jaeger-es-lookback
+  labels:
+    app: cnos-jaeger
+  namespace: cnos-system
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cnos-jaeger-query
+  labels:
+    app: cnos-jaeger
+  namespace: cnos-system
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cnos-jaeger-spark
+  labels:
+    app: cnos-jaeger
+  namespace: cnos-system
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cnos-jaeger-es-rollover
+  labels:
+    app: cnos-jaeger
+  namespace: cnos-system
+automountServiceAccountToken: false

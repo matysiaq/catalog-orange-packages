@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cnos-apm-server
+  labels:
+    app: "cnos-apm-server"
+  namespace: cnos-system

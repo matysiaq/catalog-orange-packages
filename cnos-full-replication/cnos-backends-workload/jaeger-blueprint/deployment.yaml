@@ -1,0 +1,180 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cnos-jaeger-collector
+  labels:
+    app: cnos-jaeger
+  namespace: cnos-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cnos-jaeger
+  template:
+    metadata:
+      labels:
+        app: cnos-jaeger
+    spec:
+      serviceAccountName: cnos-jaeger-collector
+      initContainers:
+        - name: wait-for-elasticsearch
+          image: busybox
+          command: ['sh', '-c', 'until nc -z -v -w30 cnos-elasticsearch-master 9200; do echo "Waiting for Elasticsearch"; sleep 10; done' ]
+      containers:
+        - name: cnos-jaeger-collector
+          image: jaegertracing/jaeger-collector:1.53.0
+          imagePullPolicy: IfNotPresent
+          args:
+            - --es.tls.ca=/es-tls/ca.crt
+          env:
+            - name: COLLECTOR_OTLP_ENABLED
+              value: "true"
+            - name: SPAN_STORAGE_TYPE
+              value: elasticsearch
+            - name: ES_SERVER_URLS
+              value: https://cnos-elasticsearch-master.cnos-system:9200
+            - name: ES_USERNAME
+              value: elastic
+            - name: ES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cnos-elasticsearch-master-credentials
+                  key: password
+            - name: ES_TLS_ENABLED
+              value: "true"
+            - name: ES_TLS_CA
+              value: /es-tls/ca.crt
+            - name: ES_TAGS_AS_FIELDS_ALL
+              value: "true"
+          ports:
+            - containerPort: 14250
+              name: grpc
+              protocol: TCP
+            - containerPort: 14268
+              name: http
+              protocol: TCP
+            - containerPort: 14269
+              name: admin
+              protocol: TCP
+            - containerPort: 4317
+              name: otlp-grpc
+              protocol: TCP
+            - containerPort: 4318
+              name: otlp-http
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /
+              port: admin
+          livenessProbe:
+            httpGet:
+              path: /
+              port: admin
+          volumeMounts:
+            - name: cnos-elasticsearch-master-certs
+              mountPath: /es-tls/
+              readOnly: true
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      volumes:
+        - name: cnos-elasticsearch-master-certs
+          secret:
+            secretName: cnos-elasticsearch-master-certs
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cnos-jaeger-query
+  labels:
+    app: cnos-jaeger
+  namespace: cnos-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cnos-jaeger
+  template:
+    metadata:
+      labels:
+        app: cnos-jaeger
+    spec:
+      serviceAccountName: cnos-jaeger-query
+      initContainers:
+        - name: wait-for-elasticsearch
+          image: busybox
+          command: ['sh', '-c', 'until nc -z -v -w30 cnos-elasticsearch-master 9200; do echo "Waiting for Elasticsearch"; sleep 10; done' ]
+      containers:
+        - name: cnos-jaeger-query
+          image: jaegertracing/jaeger-query:1.53.0
+          imagePullPolicy: IfNotPresent
+          args:
+            - --es.tls.ca=/es-tls/ca.crt
+          env:
+            - name: SPAN_STORAGE_TYPE
+              value: elasticsearch
+            - name: ES_SERVER_URLS
+              value: https://cnos-elasticsearch-master.cnos-system:9200
+            - name: ES_USERNAME
+              value: elastic
+            - name: ES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cnos-elasticsearch-master-credentials
+                  key: password
+            - name: ES_TLS_ENABLED
+              value: "true"
+            - name: ES_TLS_CA
+              value: /es-tls/ca.crt
+            - name: ES_TAGS_AS_FIELDS_ALL
+              value: "true"
+            - name: QUERY_BASE_PATH
+              value: "/"
+            - name: JAEGER_AGENT_PORT
+              value: "6831"
+          ports:
+            - name: query
+              containerPort: 16686
+              protocol: TCP
+            - name: grpc
+              containerPort: 16685
+              protocol: TCP
+            - name: admin
+              containerPort: 16687
+              protocol: TCP
+          volumeMounts:
+            - name: cnos-elasticsearch-master-certs
+              mountPath: /es-tls/
+              readOnly: true
+          livenessProbe:
+            httpGet:
+              path: /
+              port: admin
+          readinessProbe:
+            httpGet:
+              path: /
+              port: admin
+        - name: cnos-jaeger-agent-sidecar
+          image: jaegertracing/jaeger-agent:1.53.0
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: REPORTER_GRPC_HOST_PORT
+              value: cnos-jaeger-collector:14250
+          ports:
+            - name: admin
+              containerPort: 14271
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: admin
+          readinessProbe:
+            httpGet:
+              path: /
+              port: admin
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      volumes:
+        - name: cnos-elasticsearch-master-certs
+          secret:
+            secretName: cnos-elasticsearch-master-certs

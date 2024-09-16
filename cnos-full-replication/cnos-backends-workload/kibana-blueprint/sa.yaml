@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cnos-kibana-sa
+  namespace: cnos-system
+  labels:
+    app: cnos-kibana

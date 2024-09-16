@@ -1,0 +1,56 @@
+---
+apiVersion: fn.kpt.dev/v1alpha1
+kind: ApplyReplacements
+metadata:
+  name: propagate-name
+  annotations:
+    config.kubernetes.io/local-config: "true"
+replacements:
+- source:
+    kind: WorkloadCluster
+    name: workload-cluster
+    fieldPath: spec.clusterName
+  targets:
+  - select:
+      kind: OpenTelemetryCollector
+      name: otelcol-deployment
+    fieldPaths:
+      - metadata.labels.[info.cnos/cluster-name]
+    options:
+      create: true
+- source:
+    kind: ConfigMap
+    name: cnos-backends
+    fieldPath: data.metrics
+  targets:
+    - select:
+        kind: OpenTelemetryCollector
+        name: otelcol-deployment
+      fieldPaths:
+        - metadata.annotations.[backends.cnos/remote-metrics]
+      options:
+        create: true
+- source:
+    kind: ConfigMap
+    name: cnos-backends
+    fieldPath: data.logs
+  targets:
+    - select:
+        kind: OpenTelemetryCollector
+        name: otelcol-deployment
+      fieldPaths:
+        - metadata.annotations.[backends.cnos/remote-logs]
+      options:
+        create: true
+- source:
+    kind: ConfigMap
+    name: cnos-backends
+    fieldPath: data.traces
+  targets:
+    - select:
+        kind: OpenTelemetryCollector
+        name: otelcol-deployment
+      fieldPaths:
+        - metadata.annotations.[backends.cnos/remote-traces]
+      options:
+        create: true

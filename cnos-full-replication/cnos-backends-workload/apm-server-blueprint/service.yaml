@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: cnos-apm-server
+  labels:
+    app: cnos-apm-server
+  namespace: cnos-system
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8200
+      protocol: TCP
+      name: http
+      targetPort: 8200
+  selector:
+    app: cnos-apm-server

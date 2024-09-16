@@ -1,0 +1,12 @@
+apiVersion: kpt.dev/v1
+kind: Kptfile
+metadata:
+  name: cnos-backends-workload
+  annotations:
+    config.kubernetes.io/local-config: "true"
+info:
+  description: sample package for Cloud Native Observability stack (CNOS) by Orange Poland
+pipeline:
+  mutators:
+    - image: gcr.io/kpt-fn/set-namespace:v0.4.1
+      configPath: cm-namespace.yaml

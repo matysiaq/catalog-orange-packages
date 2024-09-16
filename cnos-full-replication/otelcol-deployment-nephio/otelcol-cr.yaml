@@ -1,0 +1,280 @@
+---
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: otelcol-deployment
+  namespace: cnos-system
+  labels:
+    info.cnos/cluster-name: nephio
+  annotations:
+    backends.cnos/remote-metrics: example
+    backends.cnos/remote-logs: example
+    backends.cnos/remote-traces: example
+spec:
+  env:
+    - name: CLUSTER_NAME
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.labels['info.cnos/cluster-name']
+    - name: REGION
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.labels['nephio.org/region']
+    - name: SITE_TYPE
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.labels['nephio.org/site-type']
+    - name: REMOTE_BACKEND_METRICS
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.annotations['backends.cnos/remote-metrics']
+    - name: REMOTE_BACKEND_LOGS
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.annotations['backends.cnos/remote-logs']
+    - name: REMOTE_BACKEND_TRACES
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.annotations['backends.cnos/remote-traces']
+  volumeMounts:
+    - mountPath: /es-certs
+      name: es-certs
+    - mountPath: /es-certs/remote
+      name: es-certs-remote
+  volumes:
+    - name: es-certs
+      secret:
+        secretName: cnos-elasticsearch-master-certs
+    - name: es-certs-remote
+      secret:
+        secretName: cnos-elasticsearch-remote-certs
+  config:
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+          http:
+
+      prometheus:
+        config:
+          scrape_configs:
+            - job_name: 'kube-state-metrics'
+              static_configs:
+                - targets: [ 'kube-state-metrics.kube-system.svc.cluster.local:8080' ]
+
+      k8s_cluster:
+        auth_type: serviceAccount
+        node_conditions_to_report: [Ready, NotReady, MemoryPressure]
+        allocatable_types_to_report: [cpu, memory, storage]
+        distribution: kubernetes
+        collection_interval: 10s
+
+      k8sobjects:
+        auth_type: serviceAccount
+        objects:
+          - name: certificates
+            mode: pull
+            group: cert-manager.io/v1
+          - name: pods
+            mode: pull
+          - name: events
+            group: events.k8s.io
+            mode: watch
+          - name: networks
+            group: config.nephio.org/v1alpha1
+          - name: workloadclusters
+            group: infra.nephio.org/v1alpha1
+            mode: pull
+          - name: networks
+            group: config.nephio.org/v1alpha1
+            mode: pull
+          - name: clustercontexts
+            group: infra.nephio.org/v1alpha1
+            mode: pull
+          - name: networkconfigs
+            group: infra.nephio.org/v1alpha1
+            mode: pull
+          - name: networks
+            group: infra.nephio.org/v1alpha1
+            mode: pull
+          - name: repositories
+            group: infra.nephio.org/v1alpha1
+            mode: pull
+          - name: tokens
+            group: infra.nephio.org/v1alpha1
+            mode: pull
+          - name: endpoints
+            group: inv.nephio.org/v1alpha1
+            mode: pull
+          - name: links
+            group: inv.nephio.org/v1alpha1
+            mode: pull
+          - name: nodes
+            group: inv.nephio.org/v1alpha1
+            mode: pull
+          - name: targets
+            group: inv.nephio.org/v1alpha1
+            mode: pull
+          - name: ipclaims
+            group: ipam.resource.nephio.org/v1alpha1
+            mode: pull
+          - name: ipprefixes
+            group: ipam.resource.nephio.org/v1alpha1
+            mode: pull
+          - name: networkinstances
+            group: ipam.resource.nephio.org/v1alpha1
+            mode: pull
+          - name: capacities
+            group: req.nephio.org/v1alpha1
+            mode: pull
+          - name: datanetworknames
+            group: req.nephio.org/v1alpha1
+            mode: pull
+          - name: datanetworks
+            group: req.nephio.org/v1alpha1
+            mode: pull
+          - name: interfaces
+            group: req.nephio.org/v1alpha1
+            mode: pull
+          - name: rawtopologies
+            group: topo.nephio.org/v1alpha1
+            mode: pull
+          - name: vlanclaims
+            group: vlan.resource.nephio.org/v1alpha1
+            mode: pull
+          - name: vlanindices
+            group: vlan.resource.nephio.org/v1alpha1
+            mode: pull
+          - name: vlans
+            group: vlan.resource.nephio.org/v1alpha1
+            mode: pull
+          - name: amfdeployments
+            group: workload.nephio.org/v1alpha1
+            mode: pull
+          - name: smfdeployments
+            group: workload.nephio.org/v1alpha1
+            mode: pull
+          - name: upfdeployments
+            group: workload.nephio.org/v1alpha1
+            mode: pull
+          - name: clusters
+            group: cluster.x-k8s.io
+            mode: pull
+
+    processors:
+      batch:
+        send_batch_size: 10000
+        timeout: 1s
+
+      attributes/add-source/k8s_cluster:
+        actions:
+          - key: otel_data_source
+            value: k8s_cluster
+            action: upsert
+
+      attributes/add-source/ksm:
+        actions:
+          - key: otel_data_source
+            value: ksm
+            action: upsert
+
+      attributes/add-source/k8sobjects:
+        actions:
+          - key: otel_data_source
+            value: k8sobjects
+            action: upsert
+
+      attributes/cluster:
+        actions:
+          - key: cluster
+            value: ${env:CLUSTER_NAME}
+            action: upsert
+          - key: region
+            value: ${env:REGION}
+            action: upsert
+          - key: site_type
+            value: ${env:SITE_TYPE}
+            action: upsert
+
+      k8sattributes:
+        auth_type: "serviceAccount"
+        passthrough: false
+        extract:
+          metadata:
+            - k8s.pod.name
+            - k8s.pod.uid
+            - k8s.deployment.name
+            - k8s.namespace.name
+            - k8s.node.name
+            - k8s.pod.start_time
+        pod_association:
+          - sources:
+              - from: resource_attribute
+                name: k8s.pod.ip
+          - sources:
+              - from: resource_attribute
+                name: k8s.pod.uid
+          - sources:
+              - from: connection
+
+    exporters:
+      debug:
+
+      prometheusremotewrite/remote:
+        endpoint: ${env:REMOTE_BACKEND_METRICS}
+        tls:
+          insecure: true
+
+      prometheusremotewrite/edge:
+        endpoint: "http://cnos-prometheus-agent-local.cnos-system:8080/api/v1/write"
+        tls:
+          insecure: true
+
+      otlp/jaeger/edge:
+        endpoint: http://cnos-jaeger-collector.cnos-system:4317
+        tls:
+          insecure: true
+
+      otlp/jaeger/remote:
+        endpoint: ${env:REMOTE_BACKEND_TRACES}
+        tls:
+          insecure: true
+
+      otlp/elasticsearch/edge:
+        endpoint: http://cnos-apm-server:8200
+        tls:
+          insecure: true
+
+      otlp/elasticsearch/remote:
+        endpoint: ${env:REMOTE_BACKEND_LOGS}
+        tls:
+          insecure: true
+
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [batch, attributes/cluster]
+          exporters: [debug, otlp/jaeger/edge, otlp/jaeger/remote]
+
+        metrics:
+          receivers: [otlp]
+          processors: [batch, attributes/cluster]
+          exporters: [debug, prometheusremotewrite/remote, prometheusremotewrite/edge]
+        metrics/k8s_cluster:
+          receivers: [k8s_cluster]
+          processors: [k8sattributes, batch, attributes/cluster, attributes/add-source/k8s_cluster]
+          exporters: [debug, prometheusremotewrite/remote, prometheusremotewrite/edge]
+        metrics/ksm:
+          receivers: [prometheus]
+          processors: [k8sattributes, batch, attributes/cluster, attributes/add-source/ksm]
+          exporters: [debug, prometheusremotewrite/remote, prometheusremotewrite/edge]
+
+        logs:
+          receivers: [otlp]
+          processors: [batch, attributes/cluster]
+          exporters: [debug, otlp/elasticsearch/edge, otlp/elasticsearch/remote]
+        logs/k8sobjects:
+          receivers: [k8sobjects]
+          processors: [k8sattributes, batch, attributes/cluster, attributes/add-source/k8sobjects]
+          exporters: [debug, otlp/elasticsearch/edge, otlp/elasticsearch/remote]

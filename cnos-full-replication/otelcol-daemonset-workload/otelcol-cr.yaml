@@ -1,0 +1,311 @@
+---
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: otelcol-daemonset
+  namespace: cnos-system
+spec:
+  mode: daemonset
+  env:
+    - name: K8S_NODE_NAME
+      valueFrom:
+        fieldRef:
+          fieldPath: spec.nodeName
+    - name: NODE_IP
+      valueFrom:
+        fieldRef:
+          apiVersion: v1
+          fieldPath: status.hostIP
+    - name: POD_NAMESPACE
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.namespace
+    - name: POD_SA
+      valueFrom:
+        fieldRef:
+          fieldPath: spec.serviceAccountName
+  volumeMounts:
+    - mountPath: /var/log/pods
+      name: varlogpods
+      readOnly: true
+    - name: varlibdockercontainers
+      mountPath: /var/lib/docker/containers
+      readOnly: true
+    - name: hostfs
+      mountPath: /hostfs
+      readOnly: true
+      mountPropagation: HostToContainer
+  volumes:
+    - name: varlogpods
+      hostPath:
+        path: /var/log/pods
+    - name: varlibdockercontainers
+      hostPath:
+        path: /var/lib/docker/containers
+    - name: hostfs
+      hostPath:
+        path: /
+  config:
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+          http:
+
+      prometheus:
+        config:
+          scrape_configs:
+            - job_name: 'kube-state-metrics'
+              static_configs:
+                - targets: ['kube-state-metrics-shard.kube-system.svc.cluster.local:8080']
+
+      kubeletstats:
+        auth_type: serviceAccount
+        collection_interval: 20s
+        endpoint: "https://${env:NODE_IP}:10250"
+        insecure_skip_verify: true
+
+      hostmetrics:
+        collection_interval: 10s
+        root_path: /hostfs
+        scrapers:
+          cpu: null
+          disk: null
+          filesystem:
+            exclude_fs_types:
+              fs_types:
+              - autofs
+              - binfmt_misc
+              - bpf
+              - cgroup2
+              - configfs
+              - debugfs
+              - devpts
+              - devtmpfs
+              - fusectl
+              - hugetlbfs
+              - iso9660
+              - mqueue
+              - nsfs
+              - overlay
+              - proc
+              - procfs
+              - pstore
+              - rpc_pipefs
+              - securityfs
+              - selinuxfs
+              - squashfs
+              - sysfs
+              - tracefs
+              match_type: strict
+            exclude_mount_points:
+              match_type: regexp
+              mount_points:
+              - /dev/*
+              - /proc/*
+              - /sys/*
+              - /run/k3s/containerd/*
+              - /var/lib/docker/*
+              - /var/lib/kubelet/*
+              - /snap/*
+          load: null
+          memory: null
+          network: null
+
+      syslog/tcp:
+        tcp:
+          listen_address: "0.0.0.0:54526"
+        protocol: rfc5424
+
+      syslog/udp:
+        udp:
+          listen_address: "0.0.0.0:54526"
+        protocol: rfc3164
+        location: UTC
+
+      filelog:
+        include:
+        - /var/log/pods/*/*/*.log
+        include_file_name: false
+        include_file_path: true
+        operators:
+        - id: get-format
+          routes:
+          - expr: body matches "^\\\\{"
+            output: parser-docker
+          - expr: body matches "^[^ Z]+ "
+            output: parser-crio
+          - expr: body matches "^[^ Z]+Z"
+            output: parser-containerd
+          type: router
+        - id: parser-crio
+          regex: ^(?P<time>[^ Z]+) (?P<stream>stdout|stderr) (?P<logtag>[^ ]*) ?(?P<log>.*)$
+          timestamp:
+            layout: 2006-01-02T15:04:05.999999999Z07:00
+            layout_type: gotime
+            parse_from: attributes.time
+          type: regex_parser
+        - combine_field: attributes.log
+          combine_with: ""
+          id: crio-recombine
+          is_last_entry: attributes.logtag == 'F'
+          max_log_size: 102400
+          output: extract_metadata_from_filepath
+          source_identifier: attributes["log.file.path"]
+          type: recombine
+        - id: parser-containerd
+          regex: ^(?P<time>[^ ^Z]+Z) (?P<stream>stdout|stderr) (?P<logtag>[^ ]*) ?(?P<log>.*)$
+          timestamp:
+            layout: '%Y-%m-%dT%H:%M:%S.%LZ'
+            parse_from: attributes.time
+          type: regex_parser
+        - combine_field: attributes.log
+          combine_with: ""
+          id: containerd-recombine
+          is_last_entry: attributes.logtag == 'F'
+          max_log_size: 102400
+          output: extract_metadata_from_filepath
+          source_identifier: attributes["log.file.path"]
+          type: recombine
+        - id: parser-docker
+          output: extract_metadata_from_filepath
+          timestamp:
+            layout: '%Y-%m-%dT%H:%M:%S.%LZ'
+            parse_from: attributes.time
+          type: json_parser
+        - id: extract_metadata_from_filepath
+          parse_from: attributes["log.file.path"]
+          regex: ^.*\/(?P<namespace>[^_]+)_(?P<pod_name>[^_]+)_(?P<uid>[a-f0-9\-]+)\/(?P<container_name>[^\._]+)\/(?P<restart_count>\d+)\.log$
+          type: regex_parser
+        - from: attributes.stream
+          to: attributes["log.iostream"]
+          type: move
+        - from: attributes.container_name
+          to: resource["k8s.container.name"]
+          type: move
+        - from: attributes.namespace
+          to: resource["k8s.namespace.name"]
+          type: move
+        - from: attributes.pod_name
+          to: resource["k8s.pod.name"]
+          type: move
+        - from: attributes.restart_count
+          to: resource["k8s.container.restart_count"]
+          type: move
+        - from: attributes.uid
+          to: resource["k8s.pod.uid"]
+          type: move
+        - from: attributes.log
+          to: body
+          type: move
+        retry_on_failure:
+          enabled: true
+        start_at: end
+
+    processors:
+      batch:
+        send_batch_size: 10000
+        timeout: 1s
+
+      memory_limiter:
+        check_interval: 1s
+        limit_percentage: 80
+        spike_limit_percentage: 25
+
+      attributes/add-source/kubeletstats:
+        actions:
+          - key: otel_data_source
+            value: kubeletstats
+            action: upsert
+
+      attributes/add-source/hostmetrics:
+        actions:
+          - key: otel_data_source
+            value: hostmetrics
+            action: upsert
+
+      attributes/add-source/ksm:
+        actions:
+          - key: otel_data_source
+            value: ksm
+            action: upsert
+
+      attributes/add-source/filelog:
+        actions:
+          - key: otel_data_source
+            value: filelog
+            action: upsert
+
+      attributes/add-source/syslog:
+        actions:
+          - key: otel_data_source
+            value: syslog
+            action: upsert
+
+      k8sattributes:
+        auth_type: "serviceAccount"
+        passthrough: false
+        filter:
+          node_from_env_var: KUBE_NODE_NAME
+        extract:
+          metadata:
+            - k8s.pod.name
+            - k8s.pod.uid
+            - k8s.deployment.name
+            - k8s.namespace.name
+            - k8s.node.name
+            - k8s.pod.start_time
+        pod_association:
+          - sources:
+              - from: resource_attribute
+                name: k8s.pod.ip
+          - sources:
+              - from: resource_attribute
+                name: k8s.pod.uid
+          - sources:
+              - from: connection
+
+    exporters:
+      debug:
+
+      otlp:
+        endpoint: "otelcol-deployment-collector:4317"
+        tls:
+          insecure: true
+
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [k8sattributes, batch]
+          exporters: [otlp]
+
+        metrics:
+          receivers: [otlp]
+          processors: [k8sattributes, batch]
+          exporters: [otlp]
+        metrics/kubeletstats:
+          receivers: [kubeletstats]
+          processors: [k8sattributes, batch, attributes/add-source/kubeletstats]
+          exporters: [otlp]
+        metrics/hostmetrics:
+          receivers: [hostmetrics]
+          processors: [k8sattributes, batch, attributes/add-source/hostmetrics]
+          exporters: [otlp]
+        metrics/ksm:
+          receivers: [prometheus]
+          processors: [k8sattributes, batch, attributes/add-source/ksm]
+          exporters: [otlp]
+
+        logs:
+          receivers: [otlp]
+          processors: [k8sattributes, batch]
+          exporters: [otlp]
+        logs/filelog:
+          receivers: [filelog]
+          processors: [k8sattributes, batch, attributes/add-source/filelog]
+          exporters: [otlp]
+        logs/syslog:
+          receivers: [syslog/tcp, syslog/udp]
+          processors: [k8sattributes, batch, attributes/add-source/syslog]
+          exporters: [otlp]
