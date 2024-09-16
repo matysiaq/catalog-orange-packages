@@ -1,0 +1,7 @@
+apiVersion: workload.nephio.org/v1alpha1
+kind: NFDeployment
+metadata:
+  name: mongodb-example
+  namespace: mongodb-example
+spec:
+  provider: mongodb.free5gc.io

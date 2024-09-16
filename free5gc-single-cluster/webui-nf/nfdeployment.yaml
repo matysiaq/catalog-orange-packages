@@ -1,0 +1,7 @@
+apiVersion: workload.nephio.org/v1alpha1
+kind: NFDeployment
+metadata:
+  name: webui-example
+  namespace: webui-example
+spec:
+  provider: webui.free5gc.io
