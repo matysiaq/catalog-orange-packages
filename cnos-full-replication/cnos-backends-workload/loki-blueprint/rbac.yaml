@@ -1,0 +1,90 @@
+---
+# Source: loki-stack/charts/loki/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app: loki
+  name: loki
+  namespace: cnos-system
+automountServiceAccountToken: true
+---
+# Source: loki-stack/charts/promtail/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: loki-promtail
+  namespace: cnos-system
+  labels:
+    app.kubernetes.io/name: promtail
+    app.kubernetes.io/instance: loki
+
+---
+# Source: loki-stack/charts/promtail/templates/clusterrole.yaml
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: loki-promtail
+  labels:
+    app.kubernetes.io/name: promtail
+    app.kubernetes.io/instance: loki
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - nodes
+      - nodes/proxy
+      - services
+      - endpoints
+      - pods
+    verbs:
+      - get
+      - watch
+      - list
+---
+# Source: loki-stack/charts/promtail/templates/clusterrolebinding.yaml
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: loki-promtail
+  labels:
+    app.kubernetes.io/name: promtail
+    app.kubernetes.io/instance: loki
+subjects:
+  - kind: ServiceAccount
+    name: loki-promtail
+    namespace: cnos-system
+roleRef:
+  kind: ClusterRole
+  name: loki-promtail
+  apiGroup: rbac.authorization.k8s.io
+---
+# Source: loki-stack/charts/loki/templates/role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: loki
+  namespace: cnos-system
+  labels:
+    app: loki
+rules:
+  - apiGroups:      ['extensions']
+    resources:      ['podsecuritypolicies']
+    verbs:          ['use']
+    resourceNames:  [loki]
+---
+# Source: loki-stack/charts/loki/templates/rolebinding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: loki
+  namespace: cnos-system
+  labels:
+    app: loki
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: loki
+subjects:
+  - kind: ServiceAccount
+    name: loki

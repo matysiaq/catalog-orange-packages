@@ -37,14 +37,9 @@ spec:
         fieldRef:
           fieldPath: metadata.annotations['backends.cnos/remote-traces']
   volumeMounts:
-    - mountPath: /es-certs
-      name: es-certs
     - mountPath: /es-certs/remote
       name: es-certs-remote
   volumes:
-    - name: es-certs
-      secret:
-        secretName: cnos-elasticsearch-master-certs
     - name: es-certs-remote
       secret:
         secretName: cnos-elasticsearch-remote-certs
@@ -218,8 +213,6 @@ spec:
               - from: connection
 
     exporters:
-      debug:
-
       prometheusremotewrite/remote:
         endpoint: ${env:REMOTE_BACKEND_METRICS}
         tls:
@@ -230,20 +223,13 @@ spec:
         tls:
           insecure: true
 
-      otlp/jaeger/edge:
-        endpoint: http://cnos-jaeger-collector.cnos-system:4317
-        tls:
-          insecure: true
-
       otlp/jaeger/remote:
         endpoint: ${env:REMOTE_BACKEND_TRACES}
         tls:
           insecure: true
 
-      otlp/elasticsearch/edge:
-        endpoint: http://cnos-apm-server:8200
-        tls:
-          insecure: true
+      otlp/loki/edge:
+        endpoint: http://loki.cnos-system:3100/loki/api/v1/push
 
       otlp/elasticsearch/remote:
         endpoint: ${env:REMOTE_BACKEND_LOGS}
@@ -255,26 +241,26 @@ spec:
         traces:
           receivers: [otlp]
           processors: [batch, attributes/cluster]
-          exporters: [debug, otlp/jaeger/edge, otlp/jaeger/remote]
+          exporters: [otlp/jaeger/remote]
 
         metrics:
           receivers: [otlp]
           processors: [batch, attributes/cluster]
-          exporters: [debug, prometheusremotewrite/remote, prometheusremotewrite/edge]
+          exporters: [prometheusremotewrite/remote, prometheusremotewrite/edge]
         metrics/k8s_cluster:
           receivers: [k8s_cluster]
           processors: [k8sattributes, batch, attributes/cluster, attributes/add-source/k8s_cluster]
-          exporters: [debug, prometheusremotewrite/remote, prometheusremotewrite/edge]
+          exporters: [prometheusremotewrite/remote, prometheusremotewrite/edge]
         metrics/ksm:
           receivers: [prometheus]
           processors: [k8sattributes, batch, attributes/cluster, attributes/add-source/ksm]
-          exporters: [debug, prometheusremotewrite/remote, prometheusremotewrite/edge]
+          exporters: [prometheusremotewrite/remote, prometheusremotewrite/edge]
 
         logs:
           receivers: [otlp]
           processors: [batch, attributes/cluster]
-          exporters: [debug, otlp/elasticsearch/edge, otlp/elasticsearch/remote]
+          exporters: [otlp/loki/edge, otlp/elasticsearch/remote]
         logs/k8sobjects:
           receivers: [k8sobjects]
           processors: [k8sattributes, batch, attributes/cluster, attributes/add-source/k8sobjects]
-          exporters: [debug, otlp/elasticsearch/edge, otlp/elasticsearch/remote]
+          exporters: [otlp/loki/edge, otlp/elasticsearch/remote]
