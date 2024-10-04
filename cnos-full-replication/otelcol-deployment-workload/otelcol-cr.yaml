@@ -159,8 +159,8 @@ spec:
         tls:
           insecure: true
 
-      otlp/loki/edge:
-        endpoint: http://loki.cnos-system:3100/loki/api/v1/push
+      loki/edge:
+        endpoint: "http://loki.cnos-system:3100/loki/api/v1/push"
 
       otlp/elasticsearch/remote:
         endpoint: ${env:REMOTE_BACKEND_LOGS}
@@ -190,8 +190,8 @@ spec:
         logs:
           receivers: [otlp]
           processors: [batch, attributes/cluster]
-          exporters: [debug, otlp/loki/edge, otlp/elasticsearch/remote]
+          exporters: [debug, loki/edge, otlp/elasticsearch/remote]
         logs/k8sobjects:
           receivers: [k8sobjects]
           processors: [k8sattributes, batch, attributes/cluster, attributes/add-source/k8sobjects]
-          exporters: [debug, otlp/loki/edge, otlp/elasticsearch/remote]
+          exporters: [debug, loki/edge, otlp/elasticsearch/remote]
