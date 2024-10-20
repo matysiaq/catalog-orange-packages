@@ -184,6 +184,9 @@ spec:
           - key: cluster
             value: ${env:CLUSTER_NAME}
             action: upsert
+          - key: scenario
+            value: "full_replication"
+            action: upsert
           - key: region
             value: ${env:REGION}
             action: upsert

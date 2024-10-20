@@ -184,6 +184,9 @@ spec:
           - key: cluster
             value: ${env:CLUSTER_NAME}
             action: upsert
+          - key: scenario
+            value: "no_replication"
+            action: upsert
           - key: region
             value: ${env:REGION}
             action: upsert
@@ -213,8 +216,6 @@ spec:
               - from: connection
 
     exporters:
-      debug:
-
       prometheusremotewrite/remote:
         endpoint: ${env:REMOTE_BACKEND_METRICS}
         tls:
@@ -235,26 +236,26 @@ spec:
         traces:
           receivers: [otlp]
           processors: [batch, attributes/cluster]
-          exporters: [debug, otlp/jaeger/remote]
+          exporters: [otlp/jaeger/remote]
 
         metrics:
           receivers: [otlp]
           processors: [batch, attributes/cluster]
-          exporters: [debug, prometheusremotewrite/remote]
+          exporters: [prometheusremotewrite/remote]
         metrics/k8s_cluster:
           receivers: [k8s_cluster]
           processors: [k8sattributes, batch, attributes/cluster, attributes/add-source/k8s_cluster]
-          exporters: [debug, prometheusremotewrite/remote]
+          exporters: [prometheusremotewrite/remote]
         metrics/ksm:
           receivers: [prometheus]
           processors: [k8sattributes, batch, attributes/cluster, attributes/add-source/ksm]
-          exporters: [debug, prometheusremotewrite/remote]
+          exporters: [prometheusremotewrite/remote]
 
         logs:
           receivers: [otlp]
           processors: [batch, attributes/cluster]
-          exporters: [debug, otlp/elasticsearch/remote]
+          exporters: [otlp/elasticsearch/remote]
         logs/k8sobjects:
           receivers: [k8sobjects]
           processors: [k8sattributes, batch, attributes/cluster, attributes/add-source/k8sobjects]
-          exporters: [debug, otlp/elasticsearch/remote]
+          exporters: [otlp/elasticsearch/remote]
