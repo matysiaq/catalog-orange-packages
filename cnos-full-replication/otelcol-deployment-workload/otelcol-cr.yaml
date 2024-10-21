@@ -77,9 +77,6 @@ spec:
           - name: events
             group: events.k8s.io
             mode: watch
-          - name: configs
-            group: ref.nephio.org/v1alpha1
-            mode: pull
           - name: nfconfigs
             group: workload.nephio.org/v1alpha1
             mode: pull
