@@ -6,6 +6,6 @@ metadata:
   annotations:
     config.kubernetes.io/local-config: "true"
 data:
-  metrics: "http://10.55.0.151:9009/api/v1/push"
-  logs: "http://10.55.0.151:8200"
-  traces: "http://10.55.0.151:4317"
+  metrics: "http://10.254.185.27:9009/api/v1/push"
+  logs: "http://10.254.185.27:8200"
+  traces: "http://10.254.185.27:4317"
